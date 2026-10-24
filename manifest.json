@@ -1,0 +1,12 @@
+{
+  "name": "Рич — заявки на снятие",
+  "short_name": "Рич заявки",
+  "description": "Общие заявки по адресам, поставкам и таре с быстрым подтверждением",
+  "lang": "ru",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f6fa",
+  "theme_color": "#111d32",
+  "icons": [{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]
+}
