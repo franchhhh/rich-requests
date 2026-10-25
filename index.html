@@ -9,8 +9,8 @@
   <title>Рич · Заявки на снятие</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <script src="config.js?v=4"></script>
-  <script src="parser.js?v=4"></script>
+  <script src="config.js?v=5"></script>
+  <script src="parser.js?v=5"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <style>
     :root{color-scheme:light;--ink:#182334;--muted:#748095;--line:#e6ebf1;--paper:#f3f6fa;--navy:#111d32;--blue:#3767f6;--blue-soft:#edf2ff;--amber:#eb9a17;--red:#c93b44;--green:#13835b;--shadow:0 8px 30px rgba(26,42,69,.045)}
@@ -32,6 +32,16 @@
     .thread-form{border-top:1px solid #e3eaf5;padding-top:12px}.thread-form textarea{min-height:76px;font-size:14px}.thread-form .threadextras{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.thread-form input[type=file]{font-size:12px;width:100%}.notify-panel{margin:0 0 15px;padding:14px 16px;border:1px solid #d4dffc;border-radius:15px;background:#f2f6ff}.notify-panel p{font-size:12px;color:#67748a;margin:6px 0 10px}
     @media(max-width:520px){.thread-dialog{max-height:96dvh}.thread-form .threadextras{grid-template-columns:1fr}.thread-log{max-height:36dvh}}
 
+    /* v5 — уведомления в открытом приложении и выбор пропавших AN */
+    .notify-sound{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:13px 14px;border-radius:15px;border:1px solid #d4def1;background:#fff;margin-bottom:11px}
+    .notify-sound .title-mini{font-weight:850;font-size:14px}.notify-sound .explain{font-size:11px;color:#718099;margin-top:3px}
+    .notice-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.new-count{background:#c43748;color:#fff;border-radius:999px;font-size:12px;font-weight:850;padding:6px 10px;min-width:34px;text-align:center}
+    .new-count:empty{display:none}.miss-an-panel{margin:12px 0 17px}.miss-an-list{display:grid;gap:7px;max-height:33dvh;overflow:auto;padding:2px}
+    .miss-an-option{display:flex;align-items:center;gap:12px;background:#f5f7fb;border:1px solid #dfe6f0;border-radius:11px;padding:11px 12px;cursor:pointer;min-height:48px;font-size:15px;font-weight:790;overflow-wrap:anywhere}
+    .miss-an-option:has(input:checked){background:#fff0ec;border-color:#f1b6af;color:#a73239}
+    .miss-an-option input{width:21px;height:21px;flex:0 0 21px;accent-color:#c93b44}
+    .miss-an-actions{display:flex;gap:8px;margin-top:8px;justify-content:flex-end}.miss-an-actions button{border:none;color:#3e64b1;background:#ebf0fc;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:700}
+    .an-chip.missing-an{background:#ffe2de;color:#a52d3b;border:1px solid #eaa6a0}.missed-detail{margin-top:9px;border:1px solid #f2cac6;background:#fff3f1;color:#a53844;border-radius:10px;padding:10px 12px;font-size:12px;font-weight:800;overflow-wrap:anywhere}
     /* v4.1 — Кнопки действий в карточке: 2 + отдельная кнопка переписки.
        Делаем каждую кнопку отдельной ячейкой, чтобы iOS Safari не сжимал их. */
     @media (max-width: 710px) {
@@ -87,6 +97,10 @@
   </div></header>
   <main class="shell"><div id="demo-banner" class="demo hide"><b>Демонстрационный режим.</b> Данные хранятся только в этом браузере. Чтобы заявки видели все сотрудники, подключи Supabase через <b>config.js</b> и выполни SQL.</div>
     <div class="notify-panel" id="notify-panel" style="margin-top:14px"><b>🔔 Уведомления на телефон</b><p id="notify-state">Рич получает новые заявки, автор — ответы и статус «Не найдено». Для iPhone установи сайт на экран «Домой».</p><button type="button" class="btn btn-secondary" id="notify-enable">Включить push на этом устройстве</button></div>
+    <div class="notify-sound hide" id="rich-sound-controls">
+      <div><div class="title-mini">🔔 Новые заявки в очереди</div><div class="explain">Сигнал работает, пока приложение открыто. Срочные — отдельным звуком.</div></div>
+      <div class="notice-actions"><span class="new-count hide" id="queue-new-count">0</span><button type="button" class="btn btn-secondary" id="sound-toggle">🔇 Включить звук</button><button type="button" class="btn btn-outline" id="new-clear" title="Сбросить счётчик">Сбросить</button></div>
+    </div>
     <section class="content" id="page-queue">
       <div class="pagebar"><div><div class="title">Общая очередь</div><div class="sub">Все запросы вместе — можно сортировать по адресам, срочности и времени</div></div><div class="pill" id="queue-pill">0 заявок</div></div>
       <div class="panel"><div class="toolbar"><label class="field"><span class="search-icon">⌕</span><input id="q-search" placeholder="Найти номер поставки, AN..." autocomplete="off" inputmode="search"></label><select id="q-kind" class="select" aria-label="По какому полю искать"><option value="supply">Поставка</option><option value="an">Тара (AN)</option><option value="location">Адрес</option><option value="requested_by">Кто запросил</option><option value="notes">Комментарий</option></select><select id="q-status" class="select" aria-label="Статус"><option value="open">В работе</option><option value="all">Все статусы</option><option value="found">Найдены</option><option value="not_found">Не найдены</option></select></div><div class="toolbar-advanced"><label><span class="inputlabel">Сортировка</span><select id="q-sort" class="select"><option value="urgent">Срочные → по адресу</option><option value="address">По адресу</option><option value="old">Сначала старые</option><option value="new">Сначала новые</option></select></label><label><span class="inputlabel">Возраст заявки</span><select id="q-age" class="select"><option value="0">Все заявки</option><option value="30">Старше 30 минут</option><option value="60">Старше 1 часа</option><option value="120">Старше 2 часов</option><option value="240">Старше 4 часов</option></select></label></div></div>
@@ -126,7 +140,7 @@
     <button class="navitem" data-page="stats"><span class="navico">▥</span>Смена</button>
   </div></nav>
   <div id="login-modal" class="overlay"><div class="dialog"><div class="logo" style="width:53px;height:53px;font-size:31px">⇅</div><div class="dialog-title">Вход по ФИО</div><div class="dialog-desc">Введи одинаковое имя и фамилию на телефоне и ПК, чтобы видеть одни заявки. Защиты от входа под чужим ФИО нет.</div><form id="login-form"><label class="inputlabel" for="login-name">Имя и фамилия</label><input class="textinput" id="login-name" placeholder="Например, Иванова Виктория" maxlength="60" autocomplete="name" required><div style="margin-top:17px" class="inputlabel">Режим приложения</div><div class="role-choice"><button type="button" class="rolechoice selected" data-role="requester">📋 Запрашиваю</button><button type="button" class="rolechoice" data-role="rich">🏗️ Я рич</button></div><div class="hint" style="margin:13px 0">Рич видит быстрые кнопки «Нашёл» и «Не нашёл».</div><button type="submit" class="btn btn-primary" style="width:100%;height:48px;margin-top:10px">Войти в приложение</button></form></div></div>
-  <div id="reason-modal" class="overlay hide"><div class="dialog"><div class="dialog-title">Почему не найдено?</div><p class="dialog-desc" id="reason-desc">Выбери причину для автора заявки</p><div class="role-choice" style="flex-direction:column"><button class="rolechoice" type="button" data-reason="no_box">📦 Нет короба</button><button class="rolechoice" type="button" data-reason="wrong_pallet">↪ Не тот паллет</button></div><button class="btn btn-outline" type="button" id="reason-cancel" style="width:100%;margin-top:15px">Отмена</button></div></div>
+  <div id="reason-modal" class="overlay hide"><div class="dialog"><div class="dialog-title">Почему не найдено?</div><p class="dialog-desc" id="reason-desc">Выбери причину для автора заявки</p><div class="miss-an-panel hide" id="miss-an-panel"><div class="inputlabel" style="font-size:13px;margin-bottom:8px">Какие AN не найдены? Отметь нужные:</div><div class="miss-an-list" id="miss-an-list"></div><div class="miss-an-actions"><button type="button" id="miss-all">Выбрать все</button><button type="button" id="miss-none">Снять отметки</button></div><p class="hint" style="margin-top:10px">Неотмеченные AN считаем найденными для расчётной статистики. В Telegram уйдут только выбранные номера.</p></div><div class="role-choice" style="flex-direction:column"><button class="rolechoice" type="button" data-reason="no_box">📦 Нет короба</button><button class="rolechoice" type="button" data-reason="wrong_pallet">↪ Не тот паллет</button></div><button class="btn btn-outline" type="button" id="reason-cancel" style="width:100%;margin-top:15px">Отмена</button></div></div>
   <div id="scan-modal" class="overlay hide"><div class="dialog scanwindow"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><b id="scan-title">Сканирование QR</b><button class="btn btn-plain" id="scan-close" type="button">Закрыть ×</button></div><div id="scanner-region"></div><div class="hint" style="margin-top:12px">Наведите камеру на QR. Можно сканировать отдельные поля или QR со строкой «адрес;поставка;AN».</div></div></div>
   <div class="overlay hide" id="thread-modal"><div class="dialog thread-dialog">
     <div class="thread-header"><div><div class="dialog-title" style="margin:0;font-size:21px">💬 Обсуждение заявки</div><div id="thread-title" class="hint">—</div></div><button type="button" class="btn btn-outline" id="thread-close">✕</button></div>
@@ -165,7 +179,7 @@
   function switchPage(page){currentPage=page;document.querySelectorAll('[id^="page-"]').forEach(el=>el.classList.toggle('hide',el.id!=='page-'+page));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===page));if(page==='stats')loadShiftStats();else if(page!=='add')loadList(page);window.scrollTo(0,0)}
   function chooseRole(value){role=value;document.querySelectorAll('[data-role]').forEach(el=>el.classList.toggle('selected',el.dataset.role===role))}
   function openLogin(){chooseRole(localStorage.getItem('rich-role')||'requester');$('login-name').value=localStorage.getItem('rich-name')||'';$('login-modal').classList.remove('hide')}
-  function updateUserView(){ $('user-chip').textContent=nickname; $('user-role').textContent=role==='rich'?'Оператор рича':'Автор заявок'; $('user-avatar').textContent=nickname.slice(0,1).toUpperCase();$('author-name').textContent=nickname; }
+  function updateUserView(){showSoundControls(); $('user-chip').textContent=nickname; $('user-role').textContent=role==='rich'?'Оператор рича':'Автор заявок'; $('user-avatar').textContent=nickname.slice(0,1).toUpperCase();$('author-name').textContent=nickname; }
   function currentUid(){return me?.id || 'demo-owner'}
   async function init(){
     if(live){
@@ -186,10 +200,7 @@
       if(p.eventType==='UPDATE' && profileKey(p.new?.requested_by)===profileKey(nickname) && p.new?.status==='not_found' && !p.new?.not_found_seen_at && !popups.has(p.new.id)){
         popups.add(p.new.id);toast('⚠️ Не найден короб: '+p.new.location+' / поставка '+p.new.supply,'warn',10000);if(navigator.vibrate)navigator.vibrate([140,70,140]);
       }
-      if(p.eventType==='INSERT' && role==='rich' && nickname && p.new){
-        toast((p.new.is_urgent?'🔥 Срочно! ':'📦 Новая заявка: ')+p.new.location+' / '+p.new.supply, p.new.is_urgent?'warn':'info',8000);
-        if(navigator.vibrate)navigator.vibrate(120);
-      }
+      if(p.eventType==='INSERT' && p.new)handleNewArrival(p.new);
       scheduleRefresh();
     }).on('postgres_changes',{event:'INSERT',schema:'public',table:'rich_messages'},p=>{
       if(p.new?.request_id===openThreadId)loadThreadMessages();
@@ -199,6 +210,48 @@
       }
     }).subscribe(s=>{if(s==='SUBSCRIBED')setConnection(true,'В реальном времени');else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT')setConnection(false,'Обновление связи…')})}
   const popups=new Set();
+  let newQueueCount=0;
+  const recentInsertIds=new Set();
+  let soundEnabled=localStorage.getItem('rich-sound-enabled')==='yes', audioCtx=null;
+  function showSoundControls(){
+    $('rich-sound-controls').classList.toggle('hide',role!=='rich');
+    $('sound-toggle').textContent=soundEnabled?'🔊 Звук включён':'🔇 Включить звук';
+    $('queue-new-count').textContent=newQueueCount?String(newQueueCount):'';
+    $('queue-new-count').classList.toggle('hide',newQueueCount===0);
+  }
+  function unlockSound(){
+    const AC=window.AudioContext||window.webkitAudioContext;
+    if(!AC)return false;
+    try{audioCtx=audioCtx||new AC();if(audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});return true}catch(e){console.warn('Sound:',e);return false}
+  }
+  function beep(urgent=false){
+    if(!soundEnabled||document.hidden||role!=='rich'||!unlockSound())return;
+    try{const now=audioCtx.currentTime;const tones=urgent?[790,1020,790]:[670];tones.forEach((freq,i)=>{
+      const osc=audioCtx.createOscillator(), gain=audioCtx.createGain();
+      osc.type='sine';osc.frequency.setValueAtTime(freq,now+i*.17);
+      gain.gain.setValueAtTime(0.0001,now+i*.17);gain.gain.exponentialRampToValueAtTime(.09,now+i*.17+.018);gain.gain.exponentialRampToValueAtTime(.0001,now+i*.17+.14);
+      osc.connect(gain);gain.connect(audioCtx.destination);osc.start(now+i*.17);osc.stop(now+i*.17+.15);
+    })}catch(e){console.warn('Audio:',e)}
+  }
+  function handleNewArrival(row){
+    if(role!=='rich'||!nickname||!row?.id||recentInsertIds.has(row.id))return;
+    recentInsertIds.add(row.id);
+    if(recentInsertIds.size>600)recentInsertIds.clear();
+    newQueueCount++;showSoundControls();
+    toast((row.is_urgent?'🔥 СРОЧНО! ':'📦 Новая заявка: ')+row.location+' / '+row.supply,row.is_urgent?'warn':'info',8000);
+    beep(!!row.is_urgent);
+    if(!document.hidden&&navigator.vibrate)navigator.vibrate(row.is_urgent?[100,80,100]:100);
+  }
+  function openMissDialog(id){
+    const row=currentRows.find(r=>r.id===id);if(!row)return;
+    pendingMissId=id;
+    const ans=window.RichParser.uniqueAN(row.an||'');
+    $('reason-desc').textContent='Поставка '+row.supply+' · '+row.location;
+    $('miss-an-panel').classList.toggle('hide',!ans.length);
+    $('miss-an-list').innerHTML=ans.map(a=>'<label class="miss-an-option"><input type="checkbox" value="'+htmlSafe(a)+'" '+(ans.length===1?'checked':'')+'><span>'+htmlSafe(a)+'</span></label>').join('');
+    $('reason-modal').classList.remove('hide');
+  }
+
   function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refreshAll(),440)}
   function demoQuery(page){let a=[...demoRows];if(page==='mine'||page==='problems')a=a.filter(r=>profileKey(r.requested_by)===profileKey(nickname));if(page==='problems')a=a.filter(r=>r.status==='not_found');if(page==='queue'){
      const term=safeText($('q-search').value).toLowerCase();if(term)a=a.filter(r=>String(r[$('q-kind').value]||'').toLowerCase().includes(term));else if($('q-status').value!=='all')a=a.filter(r=>r.status===$('q-status').value);
@@ -223,7 +276,7 @@
     try{let rows,total;
       if(!live){const all=demoQuery(page);total=all.length;rows=all.slice(0,pageSizes[page])}
       else{
-        let q=db.from('rich_requests').select('id,location,sort_key,supply,an,notes,box_count,is_urgent,not_found_reason,requester_id,requester_key,requested_by,status,created_at,processed_at,processed_by,not_found_seen_at',{count:'exact'});
+        let q=db.from('rich_requests').select('id,location,sort_key,supply,an,notes,box_count,is_urgent,not_found_reason,missing_an,requester_id,requester_key,requested_by,status,created_at,processed_at,processed_by,not_found_seen_at',{count:'exact'});
         if(page==='mine'||page==='problems')q=q.eq('requester_key',profileKey(nickname));
         if(page==='problems')q=q.eq('status','not_found');
         if(page==='queue'){
@@ -242,9 +295,17 @@
         if(out.error)throw out.error;rows=out.data||[];total=out.count||0;
       }
       if(callId!==currentQueryId || page!==currentPage)return;
+      // Сохраняем верхнюю видимую карточку, если приходят заявки выше по списку.
+      const anchor=page==='queue' ? [...target.querySelectorAll('[data-row-id]')].find(el=>el.getBoundingClientRect().bottom>65 && el.getBoundingClientRect().top<window.innerHeight) : null;
+      const anchorId=anchor?.dataset.rowId;
+      const anchorTop=anchor?.getBoundingClientRect().top;
       totals[page]=total;currentRows=rows;target.innerHTML=rows.length?rows.map(r=>card(r,page)).join(''):
         '<div class="empty"><div class="empty-emoji">'+(page==='problems'?'✅':'📭')+'</div><div class="empty-title">'+(page==='problems'?'Проблемных заявок нет':'Пока ничего не найдено')+'</div><div class="empty-desc">'+(page==='queue'?'Попробуй другой поиск или добавь новую заявку.':'Здесь будут отображаться подходящие заявки.')+'</div></div>';
       const more=$('loadmore-'+page);more.classList.toggle('hide',rows.length>=total);more.textContent='Показать ещё · '+(total-rows.length);
+      if(page==='queue'&&anchorId&&typeof anchorTop==='number'){
+        const next=[...target.querySelectorAll('[data-row-id]')].find(el=>el.dataset.rowId===anchorId);
+        if(next){const delta=next.getBoundingClientRect().top-anchorTop;if(Math.abs(delta)>1)window.scrollBy({top:delta,behavior:'instant'})}
+      }
       if(page==='queue'){$('queue-pill').textContent=total+' заявок';$('queue-hint').textContent=safeText($('q-search').value)?'Поиск по всем статусам · выбрана сортировка':'Выбери порядок: срочность, адрес или время';}
       if(page==='mine')$('mine-pill').textContent=total;
       if(page==='problems')$('problems-pill').textContent=total;
@@ -259,12 +320,14 @@
     if(mine && r.status==='open')buttons+='<button class="btn priority-btn" data-action="priority" data-id="'+htmlSafe(r.id)+'">'+(r.is_urgent?'☆ Снять срочность':'🔥 Срочно')+'</button>';
     buttons+='<button class="thread-btn" type="button" data-action="thread" data-id="'+htmlSafe(r.id)+'">💬 Ответ / фото</button>';
     const ans=window.RichParser.uniqueAN(r.an||'');
-    const chip=a=>'<span class="an-chip">'+htmlSafe(a)+'</span>';
+    const missing=Array.isArray(r.missing_an)?r.missing_an:[];
+    const missingSet=new Set(missing.map(a=>String(a).trim().toUpperCase()));
+    const chip=a=>'<span class="an-chip'+(missingSet.has(a.toUpperCase())?' missing-an':'')+'">'+htmlSafe(a)+'</span>';
     let anHTML=ans.length?'<div class="an-items">'+ans.slice(0,3).map(chip).join('')+'</div>':'<span class="muted">Без AN / непр</span>';
     if(ans.length>3)anHTML+='<details class="an-more"><summary>Показать остальные '+(ans.length-3)+' AN</summary><div class="an-items">'+ans.slice(3).map(chip).join('')+'</div></details>';
     const hasPhoto=/\bфото\b/iu.test(r.notes||'');
     const metadata=[ans.length?ans.length+' AN':'',r.box_count?'📦 '+r.box_count+'к':''].filter(Boolean).join(' · ');
-    return '<article class="request'+(r.is_urgent?' urgent-card':'')+'"><div><div class="req-top">'+(r.is_urgent?'<span class="state urgent-chip">🔥 СРОЧНО</span>':'')+'<span class="address">'+htmlSafe(r.location)+'</span><span class="state state-'+htmlSafe(r.status)+'">'+htmlSafe(statusName)+'</span>'+(hasPhoto?'<span class="state" style="background:#fff3d6;color:#975a06">📷 ФОТО</span>':'')+'</div><div class="req-grid"><div><div class="req-label">ПОСТАВКА</div><div class="req-value">'+htmlSafe(r.supply)+'</div></div><div><div class="req-label">ТАРА (AN)</div><div class="req-value">'+anHTML+'</div></div></div>'+(metadata?'<div class="small-meta">'+htmlSafe(metadata)+'</div>':'')+(r.notes?'<div class="req-note">📝 '+htmlSafe(r.notes)+'</div>':'')+'<div class="req-person"><span>Запросил: <b>'+htmlSafe(r.requested_by)+'</b></span><span>·</span><span class="req-date">'+htmlSafe(stamp(r.created_at))+'</span></div>'+(r.not_found_reason?'<div class="reason-text">❗ Причина: '+(r.not_found_reason==='no_box'?'Нет короба':'Не тот паллет')+'</div>':'')+(r.processed_by?'<div class="req-person" style="margin-top:5px">Отметил: <b>'+htmlSafe(r.processed_by)+'</b> · '+htmlSafe(stamp(r.processed_at))+'</div>':'')+'</div>'+(buttons?'<div class="buttons">'+buttons+'</div>':'')+'</article>';
+    return '<article data-row-id="'+htmlSafe(r.id)+'" class="request'+(r.is_urgent?' urgent-card':'')+'"><div><div class="req-top">'+(r.is_urgent?'<span class="state urgent-chip">🔥 СРОЧНО</span>':'')+'<span class="address">'+htmlSafe(r.location)+'</span><span class="state state-'+htmlSafe(r.status)+'">'+htmlSafe(statusName)+'</span>'+(hasPhoto?'<span class="state" style="background:#fff3d6;color:#975a06">📷 ФОТО</span>':'')+'</div><div class="req-grid"><div><div class="req-label">ПОСТАВКА</div><div class="req-value">'+htmlSafe(r.supply)+'</div></div><div><div class="req-label">ТАРА (AN)</div><div class="req-value">'+anHTML+'</div></div></div>'+(metadata?'<div class="small-meta">'+htmlSafe(metadata)+'</div>':'')+(r.notes?'<div class="req-note">📝 '+htmlSafe(r.notes)+'</div>':'')+(missing.length?'<div class="missed-detail">❌ Не найдены AN: '+htmlSafe(missing.join(', '))+'</div>':'')+'<div class="req-person"><span>Запросил: <b>'+htmlSafe(r.requested_by)+'</b></span><span>·</span><span class="req-date">'+htmlSafe(stamp(r.created_at))+'</span></div>'+(r.not_found_reason?'<div class="reason-text">❗ Причина: '+(r.not_found_reason==='no_box'?'Нет короба':'Не тот паллет')+'</div>':'')+(r.processed_by?'<div class="req-person" style="margin-top:5px">Отметил: <b>'+htmlSafe(r.processed_by)+'</b> · '+htmlSafe(stamp(r.processed_at))+'</div>':'')+'</div>'+(buttons?'<div class="buttons">'+buttons+'</div>':'')+'</article>';
   }
   function rowWithAuthor(row){return {...row,requested_by:nickname,requester_id:currentUid(),status:'open',is_urgent:false}}
   function parseRow(line){const item=window.RichParser.parseRow(line);return item&&!item.error?rowWithAuthor(item):item}
@@ -281,16 +344,16 @@
   }
   async function submitSingle(e){e.preventDefault();const row=parseRow([$('inp-location').value,$('inp-supply').value,$('inp-an').value].join(';'));if(!row||row.error){toast(row?.error||'Проверь адрес и поставку','error');return}row.notes=[row.notes,safeText($('inp-notes').value)].filter(Boolean).join('; ');if(row.notes.length>800){toast('Комментарий слишком длинный','error');return}const boxes=$('inp-box-count').value;if(boxes){row.box_count=Number(boxes);if(!Number.isInteger(row.box_count)||row.box_count<1||row.box_count>99999){toast('Проверь количество коробов','error');return}}row.is_urgent=$('inp-urgent').checked;const btn=e.target.querySelector('[type=submit]');btn.disabled=true;try{await insertRows([row]);toast('✓ Заявка добавлена: '+row.location);e.target.reset();$('inp-location').focus();refreshAll()}catch(err){appError(err,'Добавление')}finally{btn.disabled=false}}
   async function submitBatch(){const p=parseBatch();if(p.bad.length){toast('Есть '+p.bad.length+' строк с ошибками. Исправь их перед отправкой.','error');return}if(!p.good.length){toast('Вставь список заявок','error');return}const btn=$('batch-send');btn.disabled=true;try{await insertRows(p.good);toast('✓ Добавлено групп заявок: '+p.good.length);$('batch-text').value='';showPreview();refreshAll()}catch(e){appError(e,'Загрузка списка');toast('Важно: если загрузка прервалась, часть заявок могла сохраниться. Проверь очередь перед повтором.','warn',11000)}finally{btn.disabled=false}}
-  async function doAction(action,id,reason=null){if(!ensureReady())return;let row=currentRows.find(r=>r.id===id);if(!row)return; if(action==='delete'&&!confirm('Отменить заявку '+row.location+'?'))return;
+  async function doAction(action,id,reason=null,missingAn=[]){if(!ensureReady())return;let row=currentRows.find(r=>r.id===id);if(!row)return; if(action==='delete'&&!confirm('Отменить заявку '+row.location+'?'))return;
     try{
-      if(!live){const idx=demoRows.findIndex(r=>r.id===id);if(idx<0)return;const r=demoRows[idx];if(action==='priority'&&profileKey(r.requested_by)===profileKey(nickname)&&r.status==='open')r.is_urgent=!r.is_urgent;else if(action==='found'||action==='not_found'){if(r.status!=='open'){toast('Эта заявка уже обработана','warn');return}r.status=action;r.processed_at=new Date().toISOString();r.processed_by=nickname;r.not_found_seen_at=null;r.not_found_reason=action==='not_found'?reason:null;if(action==='not_found'&&profileKey(r.requested_by)===profileKey(nickname))toast('⚠️ Ваш короб не найден: '+r.location,'warn')}
-      else if(action==='retry'&&profileKey(r.requested_by)===profileKey(nickname)){r.status='open';r.processed_at=null;r.processed_by=null;r.not_found_seen_at=null}
+      if(!live){const idx=demoRows.findIndex(r=>r.id===id);if(idx<0)return;const r=demoRows[idx];if(action==='priority'&&profileKey(r.requested_by)===profileKey(nickname)&&r.status==='open')r.is_urgent=!r.is_urgent;else if(action==='found'||action==='not_found'){if(r.status!=='open'){toast('Эта заявка уже обработана','warn');return}r.status=action;r.processed_at=new Date().toISOString();r.processed_by=nickname;r.not_found_seen_at=null;r.not_found_reason=action==='not_found'?reason:null;r.missing_an=action==='not_found'?missingAn:[];if(action==='not_found'&&profileKey(r.requested_by)===profileKey(nickname))toast('⚠️ Ваш короб не найден: '+r.location,'warn')}
+      else if(action==='retry'&&profileKey(r.requested_by)===profileKey(nickname)){r.status='open';r.processed_at=null;r.processed_by=null;r.not_found_seen_at=null;r.not_found_reason=null;r.missing_an=[]}
       else if(action==='ack'&&profileKey(r.requested_by)===profileKey(nickname)){r.not_found_seen_at=new Date().toISOString()}
       else if(action==='delete'&&profileKey(r.requested_by)===profileKey(nickname)&&r.status==='open'){demoRows.splice(idx,1)}persistDemo();
       }else if(action==='priority'){
         const {data,error}=await db.rpc('rich_toggle_priority_v3',{p_id:id,p_actor:nickname,p_urgent:!row.is_urgent});if(error)throw error;if(!data)throw new Error('Приоритет уже нельзя изменить');
       }else if(action==='found'||action==='not_found'){
-        const {data,error}=await db.rpc('rich_mark_request_v3',{p_id:id,p_status:action,p_actor:nickname,p_reason:reason});if(error)throw error;if(!data){toast('Этот короб уже отмечен другим сотрудником','warn');await refreshAll();return}
+        const {data,error}=await db.rpc('rich_mark_request_v5',{p_id:id,p_status:action,p_actor:nickname,p_reason:reason,p_missing_an:missingAn});if(error)throw error;if(!data){toast('Этот короб уже отмечен другим сотрудником','warn');await refreshAll();return}
       }else if(action==='retry'){
         const {data,error}=await db.rpc('rich_retry_request_v3',{p_id:id,p_actor:nickname});if(error)throw error;if(!data)throw new Error('Запрос не удалось повторить');
       }else if(action==='ack'){
@@ -298,7 +361,7 @@
       }else if(action==='delete'){
         const {data,error}=await db.rpc('rich_cancel_request_v3',{p_id:id,p_actor:nickname});if(error)throw error;if(!data)throw new Error('Заявка уже обработана или нет прав на отмену');
       }
-      if(action==='priority')toast('Приоритет изменён');if(action==='found')toast('✓ Найдено: '+row.location);else if(action==='not_found')toast('Отправлено автору: «Не найдено»');else if(action==='retry')toast('Заявка возвращена в очередь');await refreshAll();
+      if(action==='priority')toast('Приоритет изменён');if(action==='found')toast('✓ Найдено: '+row.location);else if(action==='not_found')toast('Отмечено «Не найдено»'+(missingAn.length?' · AN: '+missingAn.join(', '):''));else if(action==='retry')toast('Заявка возвращена в очередь');await refreshAll();
     }catch(e){appError(e,'Обработка заявки')}
   }
   function shiftSince(){const h=Number($('shift-start').value);const date=new Date();date.setHours(h,0,0,0);if(date.getTime()>Date.now())date.setDate(date.getDate()-1);return date}
@@ -419,13 +482,31 @@
   $('refresh').addEventListener('click',refreshAll);
   let searchDebounce;['q-search','q-kind','q-status','q-sort','q-age'].forEach(id=>$(id).addEventListener(id==='q-search'?'input':'change',()=>{clearTimeout(searchDebounce);pageSizes.queue=100;searchDebounce=setTimeout(()=>loadList('queue'),240)}));
   document.querySelectorAll('[id^="loadmore-"]').forEach(b=>b.addEventListener('click',()=>{const page=b.id.replace('loadmore-','');pageSizes[page]+=100;loadList(page)}));
-  document.body.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){if(b.dataset.action==='thread'){openThread(b.dataset.id)}else if(b.dataset.action==='not_found'){pendingMissId=b.dataset.id;$('reason-modal').classList.remove('hide')}else{b.disabled=true;doAction(b.dataset.action,b.dataset.id).finally(()=>b.disabled=false)}}const s=e.target.closest('[data-scan]');if(s)openScanner(s.dataset.scan)});
+  document.body.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){if(b.dataset.action==='thread'){openThread(b.dataset.id)}else if(b.dataset.action==='not_found'){openMissDialog(b.dataset.id)}else{b.disabled=true;doAction(b.dataset.action,b.dataset.id).finally(()=>b.disabled=false)}}const s=e.target.closest('[data-scan]');if(s)openScanner(s.dataset.scan)});
   $('scan-close').addEventListener('click',closeScanner);
   $('shift-start').value=localStorage.getItem('rich-shift-start')||'09';
   $('shift-start').addEventListener('change',()=>{localStorage.setItem('rich-shift-start',$('shift-start').value);loadShiftStats()});
   $('stats-refresh').addEventListener('click',loadShiftStats);
   $('reason-cancel').addEventListener('click',()=>{$('reason-modal').classList.add('hide');pendingMissId=null});
-  document.querySelectorAll('[data-reason]').forEach(b=>b.addEventListener('click',()=>{const id=pendingMissId;pendingMissId=null;$('reason-modal').classList.add('hide');if(id)doAction('not_found',id,b.dataset.reason)}));
+  $('miss-all').addEventListener('click',()=>[...$('miss-an-list').querySelectorAll('input')].forEach(x=>x.checked=true));
+  $('miss-none').addEventListener('click',()=>[...$('miss-an-list').querySelectorAll('input')].forEach(x=>x.checked=false));
+  document.addEventListener('pointerdown',()=>{if(soundEnabled&&audioCtx?.state!=='running')unlockSound()},{passive:true});
+  $('sound-toggle').addEventListener('click',()=>{
+    soundEnabled=!soundEnabled;
+    if(soundEnabled&&!unlockSound()){soundEnabled=false;toast('Звук недоступен в этом браузере','warn')}
+    localStorage.setItem('rich-sound-enabled',soundEnabled?'yes':'no');showSoundControls();
+    if(soundEnabled){beep(false);toast('🔊 Звук включён. Срочные заявки будут звучать иначе.')}
+  });
+  $('new-clear').addEventListener('click',()=>{newQueueCount=0;showSoundControls()});
+  document.querySelectorAll('[data-reason]').forEach(b=>b.addEventListener('click',()=>{
+    const id=pendingMissId;
+    const row=currentRows.find(r=>r.id===id);
+    const total=row?window.RichParser.uniqueAN(row.an||'').length:0;
+    const selected=[...$('miss-an-list').querySelectorAll('input:checked')].map(x=>x.value);
+    if(total>0&&!selected.length){toast('Отметь хотя бы одну AN, которую не нашли','warn');return}
+    pendingMissId=null;$('reason-modal').classList.add('hide');
+    if(id)doAction('not_found',id,b.dataset.reason,selected);
+  }));
   window.addEventListener('online',()=>{setConnection(true,'Подключено');refreshAll()});window.addEventListener('offline',()=>setConnection(false,'Нет интернета'));
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshAll()});
   window.addEventListener('load',init);
