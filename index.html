@@ -31,6 +31,51 @@
     .msg{padding:10px 12px;border-radius:13px;border:1px solid #e1e8f3;background:#f5f8fc;max-width:94%;overflow-wrap:anywhere}.msg.mine{background:#edf4ff;border-color:#cadbff;align-self:flex-end}.msg .person{font-size:11px;color:#63758e;font-weight:700;margin-bottom:5px}.msg .body{font-size:14px;white-space:pre-wrap}.msg img{max-width:100%;max-height:300px;object-fit:contain;border-radius:8px;margin-top:8px;display:block}.msg .alt{margin:7px 0;background:#fff3cf;border-radius:8px;padding:7px;font-size:13px;font-weight:700}
     .thread-form{border-top:1px solid #e3eaf5;padding-top:12px}.thread-form textarea{min-height:76px;font-size:14px}.thread-form .threadextras{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.thread-form input[type=file]{font-size:12px;width:100%}.notify-panel{margin:0 0 15px;padding:14px 16px;border:1px solid #d4dffc;border-radius:15px;background:#f2f6ff}.notify-panel p{font-size:12px;color:#67748a;margin:6px 0 10px}
     @media(max-width:520px){.thread-dialog{max-height:96dvh}.thread-form .threadextras{grid-template-columns:1fr}.thread-log{max-height:36dvh}}
+
+    /* v4.1 — Кнопки действий в карточке: 2 + отдельная кнопка переписки.
+       Делаем каждую кнопку отдельной ячейкой, чтобы iOS Safari не сжимал их. */
+    @media (max-width: 710px) {
+      .request { min-width: 0; }
+      .request > div { min-width: 0; }
+      .request .buttons {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+        width: 100%;
+        min-width: 0;
+        align-items: stretch;
+      }
+      .request .buttons > .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-width: 0;
+        min-height: 50px;
+        padding: 10px 6px;
+        font-size: 14px;
+        line-height: 1.2;
+        white-space: normal;
+        text-align: center;
+        overflow-wrap: normal;
+      }
+      .request .buttons > .priority-btn {
+        grid-column: 1 / -1;
+      }
+      .request .buttons > .thread-btn {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+        min-height: 47px;
+        margin: 0;
+        padding: 11px 12px;
+        font-size: 14px;
+      }
+    }
+    @media (max-width: 360px) {
+      .request .buttons { gap: 7px; }
+      .request .buttons > .btn { font-size: 12.5px; padding: 9px 4px; }
+    }
   </style>
 </head>
 <body>
