@@ -9,8 +9,8 @@
   <title>Рич · Заявки на снятие</title>
   <link rel="manifest" href="manifest.json">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <script src="config.js?v=3"></script>
-  <script src="parser.js?v=3"></script>
+  <script src="config.js?v=4"></script>
+  <script src="parser.js?v=4"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" defer></script>
   <style>
     :root{color-scheme:light;--ink:#182334;--muted:#748095;--line:#e6ebf1;--paper:#f3f6fa;--navy:#111d32;--blue:#3767f6;--blue-soft:#edf2ff;--amber:#eb9a17;--red:#c93b44;--green:#13835b;--shadow:0 8px 30px rgba(26,42,69,.045)}
@@ -26,6 +26,11 @@
     @media(max-width:550px){.extra-fields{grid-template-columns:1fr}.req-grid{gap:12px}.req-value{font-size:18px}.an-chip{font-size:15px}}
     .urgent-card{border:2px solid #e6a348;background:#fffdf7}.urgent-chip{background:#fff0d0;color:#9b5306}.priority-btn{background:#fff3db;color:#8c5b15}.reason-text{margin-top:8px;color:#bc4548;font-size:13px;font-weight:800}.wide-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.wide-stat{background:#f4f7fd;border-radius:13px;padding:16px}.wide-stat strong{display:block;font-size:32px;color:#213b70}.urgent-inline{display:flex;align-items:center;gap:9px;margin-top:12px;font-size:13px;font-weight:750}.urgent-inline input{width:20px;height:20px;accent-color:#e38c22}.navitem{font-size:10px}.navico{font-size:19px}@media(max-width:710px){.wide-stat-grid{grid-template-columns:1fr 1fr}.toolbar-advanced{grid-template-columns:1fr 1fr}}
     @media(max-width:370px){.req-grid{gap:10px}.role{display:none}.lightbutton{font-size:11px}.btn{font-size:12px;padding:8px}.stat .number{font-size:21px}}
+    .thread-btn{margin-top:9px;width:100%;border:1px solid #b9cafa;color:#365cbd;background:#f1f5ff;border-radius:10px;font-size:13px;font-weight:800;padding:9px}
+    .thread-dialog{max-width:640px;width:100%;padding:18px;display:flex;flex-direction:column;max-height:94dvh}.thread-header{display:flex;justify-content:space-between;align-items:center;gap:12px}.thread-log{min-height:140px;max-height:48dvh;overflow:auto;padding:12px 0;display:flex;flex-direction:column;gap:10px}
+    .msg{padding:10px 12px;border-radius:13px;border:1px solid #e1e8f3;background:#f5f8fc;max-width:94%;overflow-wrap:anywhere}.msg.mine{background:#edf4ff;border-color:#cadbff;align-self:flex-end}.msg .person{font-size:11px;color:#63758e;font-weight:700;margin-bottom:5px}.msg .body{font-size:14px;white-space:pre-wrap}.msg img{max-width:100%;max-height:300px;object-fit:contain;border-radius:8px;margin-top:8px;display:block}.msg .alt{margin:7px 0;background:#fff3cf;border-radius:8px;padding:7px;font-size:13px;font-weight:700}
+    .thread-form{border-top:1px solid #e3eaf5;padding-top:12px}.thread-form textarea{min-height:76px;font-size:14px}.thread-form .threadextras{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}.thread-form input[type=file]{font-size:12px;width:100%}.notify-panel{margin:0 0 15px;padding:14px 16px;border:1px solid #d4dffc;border-radius:15px;background:#f2f6ff}.notify-panel p{font-size:12px;color:#67748a;margin:6px 0 10px}
+    @media(max-width:520px){.thread-dialog{max-height:96dvh}.thread-form .threadextras{grid-template-columns:1fr}.thread-log{max-height:36dvh}}
   </style>
 </head>
 <body>
@@ -36,6 +41,7 @@
     <div style="margin-top:14px;display:flex;justify-content:space-between;gap:10px"><span class="mini-status"><span id="conn-dot" class="dot-online"></span><span id="conn-text">Подключение…</span></span><span id="mode-status" class="mini-status"></span></div>
   </div></header>
   <main class="shell"><div id="demo-banner" class="demo hide"><b>Демонстрационный режим.</b> Данные хранятся только в этом браузере. Чтобы заявки видели все сотрудники, подключи Supabase через <b>config.js</b> и выполни SQL.</div>
+    <div class="notify-panel" id="notify-panel" style="margin-top:14px"><b>🔔 Уведомления на телефон</b><p id="notify-state">Рич получает новые заявки, автор — ответы и статус «Не найдено». Для iPhone установи сайт на экран «Домой».</p><button type="button" class="btn btn-secondary" id="notify-enable">Включить push на этом устройстве</button></div>
     <section class="content" id="page-queue">
       <div class="pagebar"><div><div class="title">Общая очередь</div><div class="sub">Все запросы вместе — можно сортировать по адресам, срочности и времени</div></div><div class="pill" id="queue-pill">0 заявок</div></div>
       <div class="panel"><div class="toolbar"><label class="field"><span class="search-icon">⌕</span><input id="q-search" placeholder="Найти номер поставки, AN..." autocomplete="off" inputmode="search"></label><select id="q-kind" class="select" aria-label="По какому полю искать"><option value="supply">Поставка</option><option value="an">Тара (AN)</option><option value="location">Адрес</option><option value="requested_by">Кто запросил</option><option value="notes">Комментарий</option></select><select id="q-status" class="select" aria-label="Статус"><option value="open">В работе</option><option value="all">Все статусы</option><option value="found">Найдены</option><option value="not_found">Не найдены</option></select></div><div class="toolbar-advanced"><label><span class="inputlabel">Сортировка</span><select id="q-sort" class="select"><option value="urgent">Срочные → по адресу</option><option value="address">По адресу</option><option value="old">Сначала старые</option><option value="new">Сначала новые</option></select></label><label><span class="inputlabel">Возраст заявки</span><select id="q-age" class="select"><option value="0">Все заявки</option><option value="30">Старше 30 минут</option><option value="60">Старше 1 часа</option><option value="120">Старше 2 часов</option><option value="240">Старше 4 часов</option></select></label></div></div>
@@ -55,7 +61,7 @@
       </div>
     </section>
     <section class="content hide" id="page-mine"><div class="pagebar"><div><div class="title">Мои запросы</div><div class="sub">Все заявки этого ФИО — на телефоне и ПК</div></div><div class="pill" id="mine-pill">0</div></div><div class="request-list" id="list-mine"></div><button class="btn btn-outline loadmore hide" id="loadmore-mine">Показать ещё</button></section>
-    <section class="content hide" id="page-problems"><div class="pagebar"><div><div class="title">Не найдено</div><div class="sub">Короба, которые рич не смог обнаружить</div></div><div class="pill" id="problems-pill">0</div></div><div class="problem-banner">Если рич нажмёт «Не нашёл», автор увидит всплывающее уведомление в открытом приложении. Запись останется здесь, даже если в тот момент приложение было закрыто.</div><div class="request-list" id="list-problems"></div><button class="btn btn-outline loadmore hide" id="loadmore-problems">Показать ещё</button></section>
+    <section class="content hide" id="page-problems"><div class="pagebar"><div><div class="title">Не найдено</div><div class="sub">Короба, которые рич не смог обнаружить</div></div><div class="pill" id="problems-pill">0</div></div><div class="problem-banner">Если рич нажмёт «Не нашёл», автор увидит всплывающее уведомление в открытом приложении. Запись останется здесь. Push при закрытом приложении будет работать после настройки серверной функции и подписки телефона.</div><div class="request-list" id="list-problems"></div><button class="btn btn-outline loadmore hide" id="loadmore-problems">Показать ещё</button></section>
 
     <section class="content hide" id="page-stats">
       <div class="pagebar"><div><div class="title">Статистика рича</div><div class="sub">По отметкам «Нашёл / Не нашёл» выбранного ФИО</div></div></div>
@@ -77,12 +83,22 @@
   <div id="login-modal" class="overlay"><div class="dialog"><div class="logo" style="width:53px;height:53px;font-size:31px">⇅</div><div class="dialog-title">Вход по ФИО</div><div class="dialog-desc">Введи одинаковое имя и фамилию на телефоне и ПК, чтобы видеть одни заявки. Защиты от входа под чужим ФИО нет.</div><form id="login-form"><label class="inputlabel" for="login-name">Имя и фамилия</label><input class="textinput" id="login-name" placeholder="Например, Иванова Виктория" maxlength="60" autocomplete="name" required><div style="margin-top:17px" class="inputlabel">Режим приложения</div><div class="role-choice"><button type="button" class="rolechoice selected" data-role="requester">📋 Запрашиваю</button><button type="button" class="rolechoice" data-role="rich">🏗️ Я рич</button></div><div class="hint" style="margin:13px 0">Рич видит быстрые кнопки «Нашёл» и «Не нашёл».</div><button type="submit" class="btn btn-primary" style="width:100%;height:48px;margin-top:10px">Войти в приложение</button></form></div></div>
   <div id="reason-modal" class="overlay hide"><div class="dialog"><div class="dialog-title">Почему не найдено?</div><p class="dialog-desc" id="reason-desc">Выбери причину для автора заявки</p><div class="role-choice" style="flex-direction:column"><button class="rolechoice" type="button" data-reason="no_box">📦 Нет короба</button><button class="rolechoice" type="button" data-reason="wrong_pallet">↪ Не тот паллет</button></div><button class="btn btn-outline" type="button" id="reason-cancel" style="width:100%;margin-top:15px">Отмена</button></div></div>
   <div id="scan-modal" class="overlay hide"><div class="dialog scanwindow"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><b id="scan-title">Сканирование QR</b><button class="btn btn-plain" id="scan-close" type="button">Закрыть ×</button></div><div id="scanner-region"></div><div class="hint" style="margin-top:12px">Наведите камеру на QR. Можно сканировать отдельные поля или QR со строкой «адрес;поставка;AN».</div></div></div>
+  <div class="overlay hide" id="thread-modal"><div class="dialog thread-dialog">
+    <div class="thread-header"><div><div class="dialog-title" style="margin:0;font-size:21px">💬 Обсуждение заявки</div><div id="thread-title" class="hint">—</div></div><button type="button" class="btn btn-outline" id="thread-close">✕</button></div>
+    <div class="thread-log" id="thread-log"><span class="hint">Загрузка переписки…</span></div>
+    <form id="thread-form" class="thread-form">
+      <label class="inputlabel" for="thread-text">Сообщение ричу или автору</label><textarea id="thread-text" class="textinput" maxlength="2000" placeholder="Например: Паллет стоит на другом адресе, смотри фото"></textarea>
+      <div class="threadextras"><label><span class="inputlabel">Другой адрес (необязательно)</span><input id="thread-alt" class="textinput" placeholder="K10-06B3" maxlength="40"></label><label><span class="inputlabel">Фото паллета · до 8 МБ</span><input id="thread-photo" type="file" accept="image/jpeg,image/png,image/webp"></label></div>
+      <div class="actionrow" style="margin-top:9px"><span class="hint" id="thread-progress">Ответ сохранится у заявки</span><button class="btn btn-primary" type="submit">Отправить ↗</button></div>
+    </form>
+  </div></div>
   <div class="toastwrap" id="toastwrap"></div>
   <script>
   'use strict';
   const $ = id => document.getElementById(id);
   const cfg = window.RICH_CONFIG || {};
   const live = !!(cfg.supabaseUrl && /^https:\/\//.test(cfg.supabaseUrl) && cfg.supabaseAnonKey && cfg.supabaseAnonKey.length > 35 && !/ВАШ|PASTE|YOUR/i.test(cfg.supabaseAnonKey));
+  let openThreadId=null, threadRow=null, threadChannel=null, demoMessages=JSON.parse(localStorage.getItem('rich-demo-messages')||'[]'), pushRegistration=null;
   let db = null, me = null, currentPage='queue', role='requester', nickname='', pendingMissId=null, currentRows=[], scanner=null, scannerLibLoading=null, scanTarget='', refreshTimer=null, realtime=null, currentQueryId=0;
   const pageSizes={queue:100,mine:100,problems:100}, totals={queue:0,mine:0,problems:0};
   let demoRows=JSON.parse(localStorage.getItem('rich-demo-rows')||'null');
@@ -117,13 +133,25 @@
     }else{me={id:'demo-owner'};$('demo-banner').classList.remove('hide');setConnection(true,'Демо — данные только здесь');$('mode-status').textContent='Демо-режим'}
     const saved=localStorage.getItem('rich-name');if(saved && saved.trim().split(/\s+/).length>=2){nickname=saved.trim().replace(/\s+/g,' ');role=localStorage.getItem('rich-role')||'requester';updateUserView();$('login-modal').classList.add('hide')}
     if(me)await refreshAll();
+    if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(r=>{pushRegistration=r;refreshPushState()}).catch(e=>console.warn('Service worker:',e));
+    const th=new URL(location.href).searchParams.get('thread');if(th&&/^[0-9a-f-]{36}$/i.test(th)){setTimeout(()=>openThread(th),300)}
   }
   function ensureReady(){if(!me||live&&!db){toast('Нет подключения к общей базе. Проверь config.js и Supabase.','error');return false}if(!nickname){openLogin();return false}return true}
   function subscribe(){if(!db)return;realtime=db.channel('rich-requests-v1').on('postgres_changes',{event:'*',schema:'public',table:'rich_requests'},p=>{
       if(p.eventType==='UPDATE' && profileKey(p.new?.requested_by)===profileKey(nickname) && p.new?.status==='not_found' && !p.new?.not_found_seen_at && !popups.has(p.new.id)){
         popups.add(p.new.id);toast('⚠️ Не найден короб: '+p.new.location+' / поставка '+p.new.supply,'warn',10000);if(navigator.vibrate)navigator.vibrate([140,70,140]);
       }
+      if(p.eventType==='INSERT' && role==='rich' && nickname && p.new){
+        toast((p.new.is_urgent?'🔥 Срочно! ':'📦 Новая заявка: ')+p.new.location+' / '+p.new.supply, p.new.is_urgent?'warn':'info',8000);
+        if(navigator.vibrate)navigator.vibrate(120);
+      }
       scheduleRefresh();
+    }).on('postgres_changes',{event:'INSERT',schema:'public',table:'rich_messages'},p=>{
+      if(p.new?.request_id===openThreadId)loadThreadMessages();
+      if(p.new && profileKey(p.new.sender_name)!==profileKey(nickname)){
+        if(role==='rich'){toast('💬 Новое сообщение по заявке','info',8000)}
+        else if(p.new.recipient_key===profileKey(nickname)){toast('💬 Рич ответил на заявку','info',9000)}
+      }
     }).subscribe(s=>{if(s==='SUBSCRIBED')setConnection(true,'В реальном времени');else if(s==='CHANNEL_ERROR'||s==='TIMED_OUT')setConnection(false,'Обновление связи…')})}
   const popups=new Set();
   function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(()=>refreshAll(),440)}
@@ -184,6 +212,7 @@
     else if(mine && r.status==='not_found')buttons='<button class="btn btn-secondary" data-action="retry" data-id="'+htmlSafe(r.id)+'">↻ Запросить снова</button>'+(!r.not_found_seen_at?'<button class="btn btn-outline" data-action="ack" data-id="'+htmlSafe(r.id)+'">Прочитано</button>':'');
     else if(mine && r.status==='open' && page==='mine')buttons='<button class="btn btn-outline" data-action="delete" data-id="'+htmlSafe(r.id)+'">Отменить</button>';
     if(mine && r.status==='open')buttons+='<button class="btn priority-btn" data-action="priority" data-id="'+htmlSafe(r.id)+'">'+(r.is_urgent?'☆ Снять срочность':'🔥 Срочно')+'</button>';
+    buttons+='<button class="thread-btn" type="button" data-action="thread" data-id="'+htmlSafe(r.id)+'">💬 Ответ / фото</button>';
     const ans=window.RichParser.uniqueAN(r.an||'');
     const chip=a=>'<span class="an-chip">'+htmlSafe(a)+'</span>';
     let anHTML=ans.length?'<div class="an-items">'+ans.slice(0,3).map(chip).join('')+'</div>':'<span class="muted">Без AN / непр</span>';
@@ -242,9 +271,102 @@
     }catch(e){$('scanner-region').innerHTML='<div class="spinner" style="padding:40px 12px">Камера не запустилась. Проверь разрешение браузера и HTTPS. Данные можно ввести вручную.</div>';console.error(e)}
   }
   async function closeScanner(){try{if(scanner){await scanner.stop();scanner.clear()}}catch(e){console.warn(e)}scanner=null;$('scan-modal').classList.add('hide')}
+  // ------- Переписка по конкретной заявке и фотографии -------
+  async function openThread(id){
+    if(!ensureReady())return;
+    openThreadId=id;
+    threadRow=currentRows.find(r=>r.id===id)||null;
+    if(live && !threadRow){const resp=await db.from('rich_requests').select('id,location,supply,requested_by,requester_key').eq('id',id).single();if(resp.error){appError(resp.error,'Заявка');return}threadRow=resp.data}
+    if(!threadRow){toast('Заявка не найдена','error');return}
+    $('thread-title').textContent=threadRow.location+' · поставка '+threadRow.supply+' · '+threadRow.requested_by;
+    $('thread-modal').classList.remove('hide');
+    $('thread-progress').textContent='Сообщения видны всем участникам общей очереди';
+    $('thread-text').value='';$('thread-alt').value='';$('thread-photo').value='';
+    await loadThreadMessages();
+  }
+  async function loadThreadMessages(){
+    if(!openThreadId)return;
+    try{
+      const requestId=openThreadId;
+      let messages;
+      if(!live){messages=demoMessages.filter(m=>m.request_id===requestId)}
+      else{const r=await db.from('rich_messages').select('id,request_id,sender_name,body,alt_address,photo_path,created_at').eq('request_id',requestId).order('created_at',{ascending:true}).limit(150);if(r.error)throw r.error;messages=r.data||[]}
+      if(openThreadId!==requestId)return;
+      const log=$('thread-log');
+      if(!messages.length){log.innerHTML='<div class="empty" style="padding:22px">Пока нет сообщений. Можно отправить фото или уточнить адрес.</div>';return}
+      log.innerHTML=messages.map(m=>{
+        const own=profileKey(m.sender_name)===profileKey(nickname);
+        return '<div class="msg'+(own?' mine':'')+'"><div class="person">'+htmlSafe(m.sender_name)+' · '+htmlSafe(stamp(m.created_at))+'</div>'+(m.body?'<div class="body">'+htmlSafe(m.body)+'</div>':'')+(m.alt_address?'<div class="alt">📍 Другой адрес: '+htmlSafe(m.alt_address)+'</div>':'')+(m.photo_path?'<div class="hint" data-photo="'+htmlSafe(m.id)+'">📷 Фото загружается…</div>':'')+'</div>';
+      }).join('');log.scrollTop=log.scrollHeight;
+      for(const m of messages.filter(m=>m.photo_path)){
+        try{
+          const url=!live?m.photo_path:await (async()=>{const out=await db.storage.from('rich-photos').createSignedUrl(m.photo_path,600);if(out.error)throw out.error;return out.data.signedUrl})();
+          if(openThreadId!==requestId)return;
+          const target=Array.from(log.querySelectorAll('[data-photo]')).find(el=>el.dataset.photo===m.id);
+          if(target){target.innerHTML='';const img=document.createElement('img');img.src=url;img.alt='Фото по заявке';img.loading='lazy';target.append(img)}
+        }catch(e){console.warn('Фото',e);const target=Array.from(log.querySelectorAll('[data-photo]')).find(el=>el.dataset.photo===m.id);if(target)target.textContent='⚠️ Не удалось открыть фото'}
+      }
+    }catch(e){appError(e,'Сообщения');$('thread-log').textContent='Не удалось загрузить переписку'}
+  }
+  async function sendThreadMessage(e){
+    e.preventDefault();if(!openThreadId||!ensureReady())return;
+    const id=openThreadId;
+    const text=safeText($('thread-text').value),alt=normalizeAddr($('thread-alt').value),file=$('thread-photo').files[0];
+    if(!text&&!alt&&!file){toast('Добавь текст, другой адрес или фото','warn');return}
+    if(text.length>2000){toast('Слишком длинное сообщение','error');return}
+    if(alt && !window.RichParser.sortKey(alt)){toast('Проверь адрес','error');return}
+    if(file && (!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>8*1024*1024)){toast('Фото должно быть JPG, PNG или WebP до 8 МБ','error');return}
+    const btn=e.currentTarget.querySelector('button[type=submit]');btn.disabled=true;
+    try{
+      let photo_path=null;
+      if(file){$('thread-progress').textContent='Загружаем фото…';if(!live){photo_path=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(file)})}
+      else{const suffix={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[file.type];photo_path=me.id+'/'+id+'/'+crypto.randomUUID()+'.'+suffix;const out=await db.storage.from('rich-photos').upload(photo_path,file,{contentType:file.type,upsert:false});if(out.error)throw out.error}}
+      const message={request_id:id,sender_name:nickname,sender_role:role,recipient_key:role==='rich'?threadRow.requester_key:'*rich*',body:text,alt_address:alt||null,photo_path};
+      if(!live){demoMessages.push({...message,id:crypto.randomUUID(),created_at:new Date().toISOString()});localStorage.setItem('rich-demo-messages',JSON.stringify(demoMessages))}
+      else{const out=await db.from('rich_messages').insert(message);if(out.error)throw out.error}
+      $('thread-text').value='';$('thread-alt').value='';$('thread-photo').value='';$('thread-progress').textContent='Сообщение отправлено';await loadThreadMessages();toast('✓ Ответ отправлен');
+    }catch(e){appError(e,'Отправка ответа')}finally{btn.disabled=false}
+  }
+  // ------- Push Web Notifications, включая экран блокировки iPhone с установленной PWA -------
+  function onIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent)}
+  function inStandalone(){return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true}
+  function pushSupport(){return ('Notification' in window && 'PushManager' in window && 'serviceWorker' in navigator && window.isSecureContext)}
+  function refreshPushState(){
+    if(!pushSupport()){$('notify-state').textContent='На этом устройстве push не поддерживается. Оставляем уведомления внутри открытого приложения.';return}
+    if(onIOS()&&!inStandalone()){$('notify-state').textContent='iPhone: Safari → Поделиться → На экран «Домой». Затем открой приложение с иконки и включи уведомления.';return}
+    $('notify-state').textContent=Notification.permission==='granted'?'Разрешение есть. Подписку на этом устройстве можно обновить кнопкой.':'Разреши уведомления, чтобы получать новые заявки и ответы при закрытом приложении.';
+    $('notify-enable').textContent=Notification.permission==='granted'?'🔔 Обновить подписку':'🔔 Включить push';
+  }
+  function decodeVapid(str){const pad='='.repeat((4-str.length%4)%4);const s=atob((str+pad).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(s,c=>c.charCodeAt(0))}
+  async function syncPushProfile(){
+    if(!live||!db||!me||!nickname||!pushSupport()||Notification.permission!=='granted')return;
+    const registration=pushRegistration||await navigator.serviceWorker.ready;
+    const sub=await registration.pushManager.getSubscription();if(!sub)return;
+    const body={endpoint:sub.endpoint,auth_uid:me.id,profile_key:profileKey(nickname),nickname,role,subscription:sub.toJSON(),active:true,updated_at:new Date().toISOString()};
+    const r=await db.from('rich_push_subscriptions').upsert(body,{onConflict:'endpoint'});if(r.error)throw r.error;
+    $('notify-state').textContent='✓ Телефон подписан: '+(role==='rich'?'все новые заявки':'ответы по вашим заявкам')+'. Если функция отправки не настроена, push не придёт.';
+  }
+  async function enablePush(){
+    if(!ensureReady())return;
+    if(!live){toast('В демо-режиме push не отправляется','warn');return}
+    if(!pushSupport()){toast('Это устройство не поддерживает push','warn');return}
+    if(onIOS()&&!inStandalone()){toast('Добавь сайт на экран «Домой» и открой через иконку','warn',9000);refreshPushState();return}
+    if(!cfg.vapidPublicKey){toast('Нет публичного VAPID-ключа в config.js','error');return}
+    try{
+      const permission=await Notification.requestPermission();
+      if(permission!=='granted'){toast('Разрешение на уведомления не получено','warn');return}
+      const registration=pushRegistration||await navigator.serviceWorker.ready;
+      let sub=await registration.pushManager.getSubscription();
+      if(!sub)sub=await registration.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decodeVapid(cfg.vapidPublicKey)});
+      await syncPushProfile();toast('🔔 Телефон подписан! Проверь серверную функцию push.');refreshPushState();
+    }catch(e){appError(e,'Push-уведомления')}
+  }
+  $('thread-close').addEventListener('click',()=>{openThreadId=null;threadRow=null;$('thread-modal').classList.add('hide')});
+  $('thread-form').addEventListener('submit',sendThreadMessage);
+  $('notify-enable').addEventListener('click',enablePush);
   document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.page)));
   document.querySelectorAll('[data-role]').forEach(b=>b.addEventListener('click',()=>chooseRole(b.dataset.role)));
-  $('login-form').addEventListener('submit',e=>{e.preventDefault();const n=safeText($('login-name').value);if(n.split(/\s+/).length<2){toast('Укажи имя и фамилию','error');return}nickname=n.replace(/\s+/g,' ');localStorage.setItem('rich-name',n);localStorage.setItem('rich-role',role);updateUserView();$('login-modal').classList.add('hide');refreshAll()});
+  $('login-form').addEventListener('submit',e=>{e.preventDefault();const n=safeText($('login-name').value);if(n.split(/\s+/).length<2){toast('Укажи имя и фамилию','error');return}nickname=n.replace(/\s+/g,' ');localStorage.setItem('rich-name',n);localStorage.setItem('rich-role',role);updateUserView();$('login-modal').classList.add('hide');refreshAll();syncPushProfile().catch(e=>console.warn('Push profile',e))});
   $('change-user').addEventListener('click',openLogin);
   $('single-form').addEventListener('submit',submitSingle);
   $('batch-text').addEventListener('input',showPreview);
@@ -252,7 +374,7 @@
   $('refresh').addEventListener('click',refreshAll);
   let searchDebounce;['q-search','q-kind','q-status','q-sort','q-age'].forEach(id=>$(id).addEventListener(id==='q-search'?'input':'change',()=>{clearTimeout(searchDebounce);pageSizes.queue=100;searchDebounce=setTimeout(()=>loadList('queue'),240)}));
   document.querySelectorAll('[id^="loadmore-"]').forEach(b=>b.addEventListener('click',()=>{const page=b.id.replace('loadmore-','');pageSizes[page]+=100;loadList(page)}));
-  document.body.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){if(b.dataset.action==='not_found'){pendingMissId=b.dataset.id;$('reason-modal').classList.remove('hide')}else{b.disabled=true;doAction(b.dataset.action,b.dataset.id).finally(()=>b.disabled=false)}}const s=e.target.closest('[data-scan]');if(s)openScanner(s.dataset.scan)});
+  document.body.addEventListener('click',e=>{const b=e.target.closest('[data-action]');if(b){if(b.dataset.action==='thread'){openThread(b.dataset.id)}else if(b.dataset.action==='not_found'){pendingMissId=b.dataset.id;$('reason-modal').classList.remove('hide')}else{b.disabled=true;doAction(b.dataset.action,b.dataset.id).finally(()=>b.disabled=false)}}const s=e.target.closest('[data-scan]');if(s)openScanner(s.dataset.scan)});
   $('scan-close').addEventListener('click',closeScanner);
   $('shift-start').value=localStorage.getItem('rich-shift-start')||'09';
   $('shift-start').addEventListener('change',()=>{localStorage.setItem('rich-shift-start',$('shift-start').value);loadShiftStats()});
